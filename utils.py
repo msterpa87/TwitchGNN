@@ -9,17 +9,21 @@ from spektral.utils.sparse import sp_matrix_to_sp_tensor
 from spektral.datasets import Citation
 from tensorflow.keras.losses import CategoricalCrossentropy
 
+def flat_tensor_list(tensor_list):
+  return tf.concat([tf.reshape(g, -1) for g in tensor_list], axis=0)
+
 def compute_fisher(model, inputs, y, mask_tr):
+  n = mask_tr.sum()
+
   loss_fn = CategoricalCrossentropy(reduction='none')
 
   with tf.GradientTape() as tape:
       pred = model(inputs)
-      loss = loss_fn(y_true=y[mask_tr], y_pred=pred[mask_tr])
+      loss = loss_fn(pred[mask_tr], y[mask_tr])
 
   gradients = tape.jacobian(loss, model.trainable_variables)
-  n = gradients[0].shape[0]
-  flatted_gradients = tf.concat([tf.reshape(g, (n, -1)) for g in gradients], axis=1)
-  return tf.reduce_mean(flatted_gradients**2, axis=0)
+  gradient_list = tf.concat([tf.reshape(g, (n, -1)) for g in gradients], axis=1)
+  return tf.reduce_mean(gradient_list**2, axis=0)
 
 def apx_fisher(model, inputs, prior_weights, num_samples=50):
   """ Approximate the fisher matrices of the model parameters """
@@ -44,7 +48,7 @@ def apx_fisher(model, inputs, prior_weights, num_samples=50):
   # return average fisher matrix across samples
   return {p: mat / num_samples for p,mat in fisher_matrices.items()}
 
-def penalty_loss(fisher_matrix, current_weights, prior_weights, lambda_=0.1):
+def old_penalty_loss(fisher_matrix, current_weights, prior_weights, lambda_=0.1):
   loss = 0
 
   for u, v, w in zip(fisher_matrix, current_weights, prior_weights):
@@ -86,7 +90,6 @@ def load_tasks():
 
     # going from 6 to 2 one-hot encoding
     y1 = one_hot(y.argmax(axis=1)[idx]-i, 2)
-    #y1 = y[idx, :]
         
     tasks.append([(x[idx,:], sparse_adj, y1), (mask_tr, mask_va, mask_te)])
 
