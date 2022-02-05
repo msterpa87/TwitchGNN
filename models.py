@@ -3,7 +3,7 @@ from tensorflow.keras.layers import Dropout, Dense, Input
 from tensorflow.keras import Model
 
 class GNNNodeClassifier(Model):
-    def __init__(self, n_labels=3, hidden_channels=64, dropout_rate=0.2):
+    def __init__(self, n_labels=2, hidden_channels=64, dropout_rate=0.2):
         super(GNNNodeClassifier, self).__init__()
         self.conv1 = GCNConv(hidden_channels, activation='relu')
         self.conv2 = GCNConv(hidden_channels, activation='relu')
