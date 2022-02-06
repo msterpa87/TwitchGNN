@@ -115,16 +115,23 @@ class GlobalAccuracy(tf.keras.metrics.Metric):
 class BackwardTransfer(tf.keras.metrics.Metric):
   def __init__(self, num_tasks, name="backward_transfer", **kwargs):
     super(BackwardTransfer, self).__init__()
-    self.accuracy_matrix = self.add_weight(name='total', shape=(num_tasks,num_tasks), initializer='zeros')
+    self.R = self.add_weight(name='total', shape=(num_tasks,num_tasks), initializer='zeros')
     self.count = self.add_weight(name='count', initializer='zeros')
 
   def update_state(self, task_i, task_j, y_true, y_pred):
     y_true = tf.argmax(y_true, axis=1)
     y_pred = tf.argmax(y_pred, axis=1)
     val = tf.reduce_mean(tf.cast(y_true == y_pred, self.dtype))
-    self.accuracy_matrix[task_i, task_j-1].assign(val)   
+    self.R[task_i, task_j].assign(val)   
     self.count.assign(tf.maximum(self.count, task_j))
 
   def result(self):
     t = self.count
-    return tf.reduce_sum(self.accuracy_matrix) / (0.5 * t*(t-1))
+    total = 0
+    shape = self.R.shape
+
+    for j in range(1, shape[1]):
+      for i in range(j):
+        total += (self.R[i,j] - self.R[i,i]).numpy()
+    
+    return total / (0.5 * t*(t-1))
