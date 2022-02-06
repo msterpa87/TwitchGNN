@@ -1,15 +1,16 @@
 from spektral.layers import GCNConv
 from tensorflow.keras.layers import Dropout, Dense, Input
 from tensorflow.keras import Model
+from tensorflow.keras.regularizers import l2
 
 class GNNNodeClassifier(Model):
-    def __init__(self, n_labels=2, hidden_channels=64, dropout_rate=0.2):
+    def __init__(self, n_labels=2, hidden_channels=64, dropout_rate=0.2, l2_reg=0.01):
         super(GNNNodeClassifier, self).__init__()
-        self.conv1 = GCNConv(hidden_channels, activation='relu')
-        self.conv2 = GCNConv(hidden_channels, activation='relu')
-        self.conv3 = GCNConv(hidden_channels, activation='relu')
-        self.fn1 = Dense(hidden_channels, activation='relu')
-        self.fn2 = Dense(n_labels, activation='softmax')
+        self.conv1 = GCNConv(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
+        self.conv2 = GCNConv(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
+        self.conv3 = GCNConv(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
+        self.fn1 = Dense(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
+        self.fn2 = Dense(n_labels, activation='softmax', kernel_regularizer=l2(l2_reg))
         self.dropout_rate = dropout_rate
     
     def call(self, inputs):
