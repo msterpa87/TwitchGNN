@@ -4,7 +4,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.regularizers import l2
 
 class GNNNodeClassifier(Model):
-    def __init__(self, n_labels=2, hidden_channels=64, dropout_rate=0.2, l2_reg=0.01):
+    def __init__(self, n_labels=3, hidden_channels=64, dropout_rate=0.2, l2_reg=0.01):
         super(GNNNodeClassifier, self).__init__()
         self.conv1 = GCNConv(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
         self.conv2 = GCNConv(hidden_channels, activation='relu', kernel_regularizer=l2(l2_reg))
@@ -27,7 +27,7 @@ class GNNNodeClassifier(Model):
         return x
 
 class BasicGCN(Model):
-    def __init__(self, n_labels=2, hidden_channels=64):
+    def __init__(self, n_labels=3, hidden_channels=64):
         super(BasicGCN, self).__init__()
         self.conv1 = GCNConv(hidden_channels, activation='relu')
         self.conv2 = GCNConv(n_labels, activation='softmax')

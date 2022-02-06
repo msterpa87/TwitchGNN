@@ -62,6 +62,51 @@ def _idx_to_mask(idx, l):
     mask[idx] = 1
     return np.array(mask, dtype=np.bool)
 
+def load_tasks_new(train_size=0.6, val_size=0.2, seed=0):
+  """ divides the Citeseer dataset group by pairs of labels (6 are available in total),
+      each node will be classified in one 3 of three classes where the third represents
+      the fact that the true class is one of the remaining 4.
+      
+      Example: select the first two classes
+               y = [0,0,0,1,0,0] -> [0,0,1]
+  """
+  dataset = Citation("citeseer", normalize_x=True, transforms=[LayerPreprocess(GCNConv), AdjToSpTensor()])
+
+  graph = dataset[0]
+  x, adj, y = graph.x, graph.a, graph.y
+
+  # split dataset for continual learning
+  y_labels = y.argmax(axis=1)
+  n = len(y_labels)
+  tasks = []
+
+  np.random.seed(seed)
+
+  for i in range(3):
+    idx1 = (y_labels == i)
+    idx2 = (y_labels == i+1)
+    idx3 = (y_labels != i) & (y_labels != i+1)
+
+    y_new = np.zeros(n)
+    y_new[idx1] = 0
+    y_new[idx2] = 1
+    y_new[idx3] = 2
+    y_new = one_hot(y_new, 3)
+
+    mask_idx = np.arange(n)
+    np.random.shuffle(mask_idx)
+
+    n_tr, n_va = int(n*train_size), int(n*val_size)
+    idx_tr, idx_va, idx_te = mask_idx[:n_tr], mask_idx[n_tr:(n_tr+n_va)], mask_idx[(n_tr+n_va):]
+
+    mask_tr = _idx_to_mask(idx_tr, n)
+    mask_va = _idx_to_mask(idx_va, n)
+    mask_te = _idx_to_mask(idx_te, n)
+        
+    tasks.append([(x, adj, y_new), (mask_tr, mask_va, mask_te)])
+
+  return tasks
+
 def load_tasks():
   """ divides the Citeseer dataset group by pairs of labels (6 are available in total """
   dataset = Citation("citeseer", normalize_x=True, transforms=[LayerPreprocess(GCNConv)])
